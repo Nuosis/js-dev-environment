@@ -1,5 +1,6 @@
+
 module.exports = {
-  widgetName: "jsDev",
+  widgetName: "googleGantt",
   server: "$",
   file: "jsDev",
   uploadScript: "UploadToHTML",
