@@ -1,27 +1,10 @@
 import { setRowData } from "./gantt";
-/*
-const exampleRowData = [
-    ['Employee1', 'Josh', 'molding',
-    new Date(2023, 9, 24, 9, 0, 0), new Date(2023, 9, 24, 12, 0, 0), null, 100, null],
-    ['Employee2', 'Anthony', 'design',
-    new Date(2023, 9, 24, 13, 0, 0), new Date(2023, 9, 24, 16, 0, 0), null, 100, null]
-];
 
-setRowData(exampleRowData);
-*/
-
-window.setGantt = function(responseObject) {
-    // Initial empty array to hold the transformed data
-    const formattedData = [];
-    const json = JSON.parse(responseObject)
-    console.log("Gantt input", json)
-    console.log("json.response: ", json.data.response);
-
+const hoursWorked = (data) => {
     try {
+        const formattedData = [];
         // Extracting relevant data from the response object
-        const records = json.data.response.data;
-        console.log("records: ", json.data.response.data);
-        
+        const records = data;
         for (const record of records) {
             console.log(record);
             const fieldData = record.fieldData;
@@ -45,6 +28,71 @@ window.setGantt = function(responseObject) {
         }
     } catch (error) {
         console.error("Error in data transformation:", error);
+    }
+}
+
+const hoursScheduled = (data) => {
+    try {
+        const formattedData = [];
+        // Extracting relevant data from the response object
+        const records = data;
+        for (const record of records) {
+            console.log(record);
+            const fieldData = record.fieldData;
+            
+            const id_employee = fieldData.empID;
+            const nameDisplay_a = fieldData['global__EMPLOYEE_SCHEDULE|id__Emply::nameDisplay_a'];
+            const department = fieldData['global__EMPLOYEE_SCHEDULE|id__Emply::department'];
+
+
+            const timestampIN = new Date();
+            let [hoursStart, minutesStart] = fieldData.startTime.split(':').map(Number);
+            
+            // Check for AM or PM and adjust hours accordingly
+            const isPM = fieldData.startTime.includes('PM');
+            if (isPM && hoursStart < 12) {
+                hoursStart += 12;
+            } else if (!isPM && hoursStart === 12) {
+                hoursStart = 0;
+            }
+            
+            timestampIN.setHours(hoursStart, minutesStart, 0, 0); // Reset seconds and milliseconds to 0
+            
+            // Parsing lengthOfShift and adding it to timestampIN to get timestampOUT
+            const lengthOfShiftParts = fieldData.lengthOfShift.split(':').map(Number);
+            const shiftDuration = new Date(timestampIN);
+            shiftDuration.setHours(timestampIN.getHours() + lengthOfShiftParts[0]);
+            shiftDuration.setMinutes(timestampIN.getMinutes() + lengthOfShiftParts[1]);
+            shiftDuration.setSeconds(timestampIN.getSeconds() + lengthOfShiftParts[2]);
+            
+            const timestampOUT = shiftDuration;
+            
+            // Now, add these to your formattedData object
+            formattedData.push([id_employee, nameDisplay_a, department, timestampIN, timestampOUT, null, 100, null]);
+            
+        }
+        
+        // Now you can pass formattedData to setRowData
+        console.log("processedData", formattedData);
+
+        if (typeof setRowData === 'function') {
+            setRowData(formattedData);
+        }
+    } catch (error) {
+        console.error("Error in data transformation:", error);
+    }
+}
+
+window.setGantt = function(responseObject) {
+    // Initial empty array to hold the transformed data
+    const json = JSON.parse(responseObject)
+    console.log("Gantt input", json)
+    const layout = json.response.dataInfo.layout
+    console.log("layout: ", layout);
+    if(layout == "dapiEmployeeSchedule") {
+        hoursScheduled(json.response.data)
+    } else {
+        hoursWorked(json.response.data)
     }
 }
 
